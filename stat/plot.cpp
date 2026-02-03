@@ -17,7 +17,7 @@ void plot_p_eta(
     pybind11::module_ sys = pybind11::module_::import("sys");
     sys.attr("path").attr("insert")(0, package_path);
     pybind11::module_ plot = pybind11::module_::import("plot_p_eta");
-    plot.attr("plot_rows")(name, r_bal, p_mul, save_path, show);
+    plot.attr("plot_rows")(name.substr(0, name.size() - 4), r_bal, p_mul, save_path, show);
 }
 
 void plot_p_eta_legend(

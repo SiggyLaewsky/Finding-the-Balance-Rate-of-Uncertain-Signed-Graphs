@@ -50,7 +50,8 @@ void run_p_eta_experiment(const std::string& plot_dir, int num_threads, int n_sa
     std::sort(pmul_list.begin(), pmul_list.end());
 
     for (auto& instance: instances) {
-        std::cout << "Instance " << instance << ":\n";
+        auto instance_name = instance.substr(0, instance.size() - 4);
+        std::cout << "Instance " << instance_name << ":\n";
         Graph gr(source_dir + instance);
         std::cout << "|V| = " << gr.n_ << "\t|E| = " << gr.m_ << std::endl;
 
@@ -115,10 +116,8 @@ void run_p_eta_experiment(const std::string& plot_dir, int num_threads, int n_sa
             std::cout << std::endl;
         }
 
-        if (!plot_dir.empty()) {
-            auto instance_name = instance.substr(0, instance.size() - 4);
+        if (!plot_dir.empty())
             plot_p_eta(instance, pmul_list, res, plot_dir + instance_name + ".pdf");
-        }
     }
 
     if (!plot_dir.empty())
