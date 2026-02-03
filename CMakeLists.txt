@@ -4,10 +4,12 @@ project(BR_USG)
 set(CMAKE_CXX_STANDARD 20)
 
 set(DATA_DIR "${CMAKE_SOURCE_DIR}/data" CACHE PATH "Data directory")
+set(MAIN_DIR "${CMAKE_SOURCE_DIR}")
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin/$<CONFIG>")
 
 find_package(pybind11 REQUIRED)
 find_package(Boost REQUIRED CONFIG)
+find_package(OpenMP REQUIRED)
 
 add_subdirectory(generator)
 
@@ -25,9 +27,13 @@ add_executable(BR_USG
         stat/plot.h
         experiments.cpp
         experiments.h
+        utils.cpp
+        utils.h
 )
 
 target_compile_definitions(BR_USG PRIVATE DATA_DIR="${DATA_DIR}/")
+target_compile_definitions(BR_USG PRIVATE MAIN_DIR="${MAIN_DIR}/")
 
 target_link_libraries(BR_USG PRIVATE pybind11::embed)
 target_link_libraries(BR_USG PRIVATE Boost::boost)
+target_link_libraries(BR_USG PRIVATE OpenMP::OpenMP_CXX)

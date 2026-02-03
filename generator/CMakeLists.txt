@@ -7,7 +7,9 @@ add_executable(BR_GENERATOR
         generator.h
         generator.cpp
         topology.cpp
-        topology.h)
+        topology.h
+        ../utils.cpp
+        ../utils.h)
 
 target_compile_definitions(BR_GENERATOR
         PRIVATE DATA_DIR="${DATA_DIR}/"

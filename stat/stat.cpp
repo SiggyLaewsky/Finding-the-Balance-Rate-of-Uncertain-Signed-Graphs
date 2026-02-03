@@ -23,7 +23,7 @@ double empirical_variance(const std::vector<std::vector<double>>& res){
         double sq_mean = std::accumulate(
                 rj.begin(), rj.end(), 0.0,
                 [](double s, double v) { return s + v * v; }
-        ) / rj.size();
+        ) / ((double) rj.size());
 
         prod_mean    *= mean;
         prod_sq_mean *= sq_mean;
@@ -107,9 +107,9 @@ prefix_CI get_log_delta_CI(const std::vector<std::vector<double>>& r, double del
 
         double hw = z * std::sqrt(var_log_theta);
 
-        ans.mean_[k] = std::exp(log_theta_hat);
-        ans.lb_[k] = std::exp(log_theta_hat - hw);
-        ans.ub_[k] = std::exp(log_theta_hat + hw);
+        ans.mean_[k - 1] = std::exp(log_theta_hat);
+        ans.lb_[k - 1] = std::exp(log_theta_hat - hw);
+        ans.ub_[k - 1] = std::min(1.0, std::exp(log_theta_hat + hw));
     }
 
     return ans;

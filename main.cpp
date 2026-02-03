@@ -3,40 +3,49 @@
 //
 
 #include "experiments.h"
-#include "core/algo.h"
-#include "stat/plot.h"
 
-int main(){
+int main(int argc, char* argv[]){
 
-    std::string plot_dir(DATA_DIR);
-    run_p_eta_experiment();
-    //run_efficiency_experiment(plot_dir);
-/*    const std::string fname(DATA_DIR);
-    Graph gr(fname + "real_world_balanced/wikipolitics.txt");
-    int n_smp = 1000;
-    auto dec = gr.preprocess();
+    std::string error_line = "\nArguments: \n-i\t\tExperiment ID (1, 2, 3).\n-d\t\tDirectory for saving results.\n"
+                             "-ns\t\tNumber of samples per evaluation of balance rate.\n-nt\t\tNumber of threads to use."
+                             "\nNumber of samples is integer > 1. Number of threads is positive integer.";
 
-    auto res = naive_MC_sample(gr, n_smp);
-    auto ci = get_hoeffding_CI(res, 0.05);
-    plot_CI(ci, fname + "ans.png");
+    int experiment, n_samples = 100, n_threads = 1;
+    std::string dir2save;
 
-    auto res2 = rao_blackwell_sample(gr, n_smp);
-    auto ci2 = get_log_delta_CI(res2, 0.05);
-    plot_CI(ci2, fname + "ans1.png");
-    plot_naive_vs_rb(ci, ci2, fname + "ans2.svg");*/
+    for (int k = 1; k < argc; ++k) {
+        std::string arg = argv[k];
 
-/*
-    auto rb = rao_blackwell_sample(gr, n_smp);
-    auto r_mean = std::accumulate(rb.begin(), rb.end(), 0.0) / ((double) n_smp);
-    std::cout << r_mean << std::endl;
+        if (arg == "-i" && k + 1 < argc) {
+            experiment = std::stoi(argv[++k]);
+        }
+        else if (arg == "-ns" && k + 1 < argc){
+            n_samples = std::stoi(argv[++k]);
+        }
+        else if (arg == "-nt" && k + 1 < argc){
+            n_threads = std::stoi(argv[++k]);
+        }
+        else if (arg == "-d" && k + 1 < argc) {
+            dir2save = std::string(argv[++k]);
+        }
+        else {
+            throw std::runtime_error(error_line);
+        }
+    }
 
-    auto db = naive_MC_sample(gr, n_smp);
-    auto d_mean = std::accumulate(db.begin(), db.end(), 0.0) / ((double) n_smp);
-    std::cout << d_mean << std::endl;
+    if (n_samples < 1 || n_threads < 1) throw std::runtime_error(error_line);
 
-    auto ans = find_FES(gr, 1000, 0.001);
-    for (auto& ed: ans)
-        std::cout << ed.first << '\t' << ed.second << std::endl;
-*/
+    if (experiment == 1){
+        run_efficiency_experiment(dir2save, n_threads, n_samples);
+    }
+    else if (experiment == 2){
+        run_p_eta_experiment(dir2save, n_threads, n_samples);
+    }
+    else if (experiment == 3){
+        run_cross_edge_experiment(n_threads, n_samples);
+    } else{
+        throw std::runtime_error(error_line);
+    }
 
+    return 0;
 }

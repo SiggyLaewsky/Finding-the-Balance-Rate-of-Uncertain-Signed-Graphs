@@ -4,6 +4,7 @@
 
 #include <fstream>
 #include "graph.h"
+#include <map>
 
 Graph::Graph(): head_(0), tail_(0), s_(0), dist_(0) {}
 
@@ -35,157 +36,148 @@ Graph::Graph(const std::string &filename) {
 }
 
 std::vector<Graph> Graph::preprocess() {
-
-    std::vector<int> edge_st(n_ + 1, 0);
-    std::vector<int> edge_id(2 * m_);
-
-    for (int e = 0; e < m_; ++e) {
-        ++edge_st[head_[e]];
-        ++edge_st[tail_[e]];
-    }
-    for (int i = 1; i <= n_; ++i)
-        edge_st[i] += edge_st[i - 1];
-
-    for (int e = 0; e < m_; ++e) {
-        edge_id[--edge_st[head_[e]]] = e;
-        edge_id[--edge_st[tail_[e]]] = e;
-    }
-
-    std::vector<bool> is_bridge(m_, false);
-    std::vector<bool> is_cutpoint(n_, false);
-    std::vector<int> tin(n_, -1), low(n_, -1), parent(n_, -1), next_edge_idx = edge_st;
-    int timer = 0;
-
-    std::vector<int> stack_dfs;
-    for (int i = 0; i < n_; ++i) {
-        if (tin[i] == -1) {
-            int root_children = 0;
-            stack_dfs.push_back(i);
-            tin[i] = low[i] = timer++;
-
-            while (!stack_dfs.empty()) {
-
-                int u = stack_dfs.back();
-
-                if (next_edge_idx[u] < edge_st[u + 1]) {
-                    int eid = edge_id[next_edge_idx[u]++];
-                    int v = (head_[eid] == u) ? tail_[eid] : head_[eid];
-
-                    if (v == parent[u]) continue;
-
-                    if (tin[v] != -1) {
-                        low[u] = std::min(low[u], tin[v]);
-                    } else {
-                        parent[v] = u;
-                        if (u == i) root_children++;
-
-                        tin[v] = low[v] = timer++;
-                        stack_dfs.push_back(v);
-                    }
-                } else {
-                    stack_dfs.pop_back();
-                    if (!stack_dfs.empty()) {
-                        int p = stack_dfs.back();
-                        low[p] = std::min(low[p], low[u]);
-
-                        if (low[u] > tin[p]) {
-                            for (int k = edge_st[p]; k < edge_st[p + 1]; ++k) {
-                                int eid = edge_id[k];
-                                if ((head_[eid] == p && tail_[eid] == u) ||
-                                    (tail_[eid] == p && head_[eid] == u)) {
-                                    is_bridge[eid] = true;
-                                    break;
-                                }
-                            }
-                        }
-
-                        if (p != i && low[u] >= tin[p]) is_cutpoint[p] = true;
-                    }
-                }
-            }
-            if (root_children > 1) is_cutpoint[i] = true;
-        }
-    }
-
-    struct Frame {
-        int v;
-        int it;
+    struct EdgeInfo {
+        int to;
+        int original_idx;
     };
 
-    std::vector<Graph> result(0);
-    std::vector<bool> visited(n_, false);
-    std::vector<bool> visited_edge(m_, false);
-    std::vector<int> vmap(n_, -1);
-    for (int start = 0; start < n_; ++start) {
-        if (visited[start] || is_cutpoint[start]) continue;
-        visited[start] = true;
-        std::vector<Frame> stack;
-        stack.push_back({start, edge_st[start]});
+    struct Frame {
+        int u;
+        int p_edge_id;
+        int adj_idx;
+    };
 
-        std::vector<int> component;
+    std::vector<Graph> result_components;
+    if (n_ == 0) return result_components;
+
+    std::vector<int> offset(n_ + 1, 0);
+
+    for (int i = 0; i < m_; ++i) {
+        if (head_[i] < n_) offset[head_[i] + 1]++;
+        if (tail_[i] < n_ && head_[i] != tail_[i]) offset[tail_[i] + 1]++;
+    }
+
+    for (int i = 0; i < n_; ++i) offset[i + 1] += offset[i];
+
+    std::vector<int> current_pos = offset;
+    std::vector<EdgeInfo> adj(offset.back());
+
+    for (int i = 0; i < m_; ++i) {
+        int u = head_[i];
+        int v = tail_[i];
+        if (u >= n_ || v >= n_ || u == v) continue;
+
+        adj[current_pos[u]++] = {v, i};
+        adj[current_pos[v]++] = {u, i};
+    }
+
+    std::vector<int> disc(n_, -1);
+    std::vector<int> low(n_, -1);
+    std::vector<int> edge_stack;
+    edge_stack.reserve(m_);
+
+    std::vector<Frame> stack;
+    stack.reserve(n_);
+
+    std::vector<int> node_map(n_, -1);
+    std::vector<int> used_nodes;
+    used_nodes.reserve(n_);
+
+    int timer = 0;
+
+    for (int root = 0; root < n_; ++root) {
+        if (disc[root] != -1) continue;
+
+        disc[root] = low[root] = ++timer;
+        stack.push_back({root, -1, offset[root]});
 
         while (!stack.empty()) {
-            Frame &f = stack.back();
-            int v = f.v;
+            auto& [u, p_edge, idx] = stack.back();
 
-            if (f.it < edge_st[v + 1]) {
-                int eid = edge_id[f.it++];
-                int to = (head_[eid] == v ? tail_[eid] : head_[eid]);
-                if (is_bridge[eid]) continue;
-                if (visited_edge[eid]) continue;
+            if (idx < offset[u + 1]) {
+                auto [v, id] = adj[idx];
 
-                component.push_back(eid);
-                visited_edge[eid] = true;
+                if (id == p_edge) {
+                    idx++;
+                    continue;
+                }
 
-                if (is_cutpoint[to]) continue;
-                if (!visited[to]){
-                    stack.push_back({to, edge_st[to]});
-                    visited[to] = true;
+                if (disc[v] != -1) {
+                    low[u] = std::min(low[u], disc[v]);
+                    if (disc[v] < disc[u]) {
+                        edge_stack.push_back(id);
+                    }
+                    idx++;
+                } else {
+                    edge_stack.push_back(id);
+                    disc[v] = low[v] = ++timer;
+                    stack.push_back({v, id, offset[v]});
+                }
+            } else {
+                int child = u;
+                int child_low = low[child];
+                int edge_to_child = p_edge;
+                stack.pop_back();
+
+                if (!stack.empty()) {
+                    auto& parent_frame = stack.back();
+                    int parent = parent_frame.u;
+                    low[parent] = std::min(low[parent], child_low);
+
+                    if (child_low >= disc[parent]) {
+                        std::vector<int> comp_edges;
+
+                        while (true) {
+                            int e = edge_stack.back();
+                            edge_stack.pop_back();
+                            comp_edges.push_back(e);
+                            if (e == edge_to_child) break;
+                        }
+
+                        if (child_low == disc[parent]) {
+                            Graph comp;
+                            used_nodes.clear();
+                            int new_idx_counter = 0;
+
+                            comp.head_.reserve(comp_edges.size());
+                            comp.tail_.reserve(comp_edges.size());
+                            comp.s_.reserve(comp_edges.size());
+                            comp.dist_.reserve(comp_edges.size());
+
+                            for (int e_idx : comp_edges) {
+                                int h = head_[e_idx];
+                                int t = tail_[e_idx];
+
+                                if (node_map[h] == -1) {
+                                    node_map[h] = new_idx_counter++;
+                                    used_nodes.push_back(h);
+                                }
+                                if (node_map[t] == -1) {
+                                    node_map[t] = new_idx_counter++;
+                                    used_nodes.push_back(t);
+                                }
+
+                                comp.head_.push_back(node_map[h]);
+                                comp.tail_.push_back(node_map[t]);
+                                comp.s_.push_back(s_[e_idx]);
+                                comp.dist_.push_back(dist_[e_idx]);
+                            }
+
+                            comp.n_ = new_idx_counter;
+                            comp.m_ = (int)comp.head_.size();
+                            result_components.push_back(std::move(comp));
+
+                            for (int node : used_nodes) node_map[node] = -1;
+                        }
+                    }
+
+                    parent_frame.adj_idx++;
                 }
             }
-            else{
-                stack.pop_back();
-            }
-        }
-
-        int new_n = 0;
-
-        auto map_v = [&](int v) {
-            int& id = vmap[v];
-            if (id == -1) id = new_n++;
-            return id;
-        };
-
-        std::vector<int> nh, nt;
-        std::vector<double> np;
-        std::vector<bool> ns;
-        for (int ei: component) {
-            if (is_bridge[ei]) continue;
-
-            int u = map_v(head_[ei]);
-            int v = map_v(tail_[ei]);
-
-            nh.push_back(u);
-            nt.push_back(v);
-            np.push_back(dist_[ei].p());
-            ns.push_back(s_[ei]);
-        }
-
-        if (!nh.empty()) {
-            result.emplace_back(
-                    new_n,
-                    static_cast<int>(nh.size()),
-                    nh, nt, np, ns
-            );
-        }
-
-        for (int ei: component){
-            vmap[head_[ei]] = -1;
-            vmap[tail_[ei]] = -1;
         }
     }
 
-    return result;
+    return result_components;
 }
 
 void Graph::remove_edge(int i, int j) {
