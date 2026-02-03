@@ -11,7 +11,8 @@ void run_efficiency_experiment(const std::string& plot_dir, int num_threads, int
     auto instances = get_dir_files(source_dir);
 
     for (auto& instance: instances){
-        std::cout << "Instance " << instance << ":\n";
+        auto instance_name = instance.substr(0, instance.size() - 4);
+        std::cout << "Instance " << instance_name << ":\n";
         Graph gr(source_dir + instance);
         std::cout << "|V| = " << gr.n_ << "\t|E| = " << gr.m_ << std::endl;
 
@@ -33,7 +34,6 @@ void run_efficiency_experiment(const std::string& plot_dir, int num_threads, int
                   empirical_variance(res_rb) << std::endl;
 
         if (!plot_dir.empty()) {
-            auto instance_name = instance.substr(0, instance.size() - 4);
             auto ci_hf = get_hoeffding_CI(res_naive, delta);
             auto ci_rb = get_log_delta_CI(res_rb, delta);
             plot_CI(ci_hf, ci_rb, plot_dir + instance_name + "_comparison.pdf");
@@ -228,9 +228,10 @@ void run_cross_edge_experiment(int num_threads, int n_samples){
 
     };
 
-    for (auto& inst: real_instances){
-        std::cout << "Instance " << inst << std::endl;
-        run_instance(real_dir + inst);
+    for (auto& instance: real_instances){
+        auto instance_name = instance.substr(0, instance.size() - 4);
+        std::cout << "Instance " << instance_name << ":\n";
+        run_instance(real_dir + instance);
         std::cout << std::endl;
     }
 }
