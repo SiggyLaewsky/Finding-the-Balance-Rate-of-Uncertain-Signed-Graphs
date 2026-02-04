@@ -36,6 +36,7 @@ Graph::Graph(const std::string &filename) {
 }
 
 std::vector<Graph> Graph::preprocess() {
+    // Tarjan-style DFS to extract edge components and reindex them as subgraphs.
     struct EdgeInfo {
         int to;
         int original_idx;
@@ -62,6 +63,7 @@ std::vector<Graph> Graph::preprocess() {
     std::vector<int> current_pos = offset;
     std::vector<EdgeInfo> adj(offset.back());
 
+    // Build adjacency in a compact edge list.
     for (int i = 0; i < m_; ++i) {
         int u = head_[i];
         int v = tail_[i];
@@ -135,6 +137,7 @@ std::vector<Graph> Graph::preprocess() {
                         }
 
                         if (child_low == disc[parent]) {
+                            // Build a component by reindexing the nodes it touches.
                             Graph comp;
                             used_nodes.clear();
                             int new_idx_counter = 0;

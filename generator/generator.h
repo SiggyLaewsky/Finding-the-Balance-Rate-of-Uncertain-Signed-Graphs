@@ -11,12 +11,23 @@
 const std::string data_dir(DATA_DIR);
 const std::string cur_dir(CUR_DIR);
 
-// number of nodes, file to save, probability of edge to get a positive sign
+/**
+ * @brief Generate a sparse synthetic signed graph.
+ * @param n Number of nodes.
+ * @param file Output path.
+ * @param p_pos Probability that an edge is positive.
+ */
 void genSyntheticSparse(int n, const std::string& file, double p_pos);
 
-// returns frustration edges
+/**
+ * @brief Generate a nearly balanced synthetic graph.
+ * @param params Size and density parameters.
+ * @param file Output path.
+ * @return List of injected "frustration" edges.
+ */
 std::vector<std::pair<int, int>> genSyntheticNearlyBalanced(NearlyBalancedParams params, const std::string& file);
 
+/// Save a list of cross edges (u, v) to a tab-separated file.
 void save_cross_edges(const std::vector<std::pair<int, int>>& ed, const std::string& filename){
     std::ofstream f(filename);
     if (!f.is_open()) throw std::runtime_error("can't open file to save cross edges");
@@ -24,6 +35,13 @@ void save_cross_edges(const std::vector<std::pair<int, int>>& ed, const std::str
     f.close();
 }
 
+/**
+ * @brief Generator entry point.
+ *
+ * Usage: BR_GENERATOR sp|nb
+ *   sp - generate sparse synthetic graphs (sizes from sparse_sizes)
+ *   nb - generate nearly balanced graphs (params from nearly_balanced_sizes)
+ */
 int main(int argc, char** argv){
     const std::string error_line = "Invalid input. The format is: the argument sp or nb for generation "
                                    "of sparse and nearly balanced synthetic data respectively. To modify"
