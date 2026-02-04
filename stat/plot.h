@@ -1,5 +1,5 @@
 //
-// Created by Sergei Kudria on 2026/1/25.
+// Created by HighlySkilledCoder on 2026/1/25.
 //
 
 #ifndef BR_USG_PLOT_H

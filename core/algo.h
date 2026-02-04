@@ -1,5 +1,5 @@
 //
-// Created by Sergei Kudria on 2026/1/23.
+// Created by HighlySkilledCoder on 2026/1/23.
 //
 
 #ifndef BR_USG_ALGO_H

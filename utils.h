@@ -1,5 +1,5 @@
 //
-// Created by Sergei Kudria on 2026/2/2.
+// Created by HighlySkilledCoder on 2026/2/2.
 //
 
 #ifndef BR_USG_UTILS_H
