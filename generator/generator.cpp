@@ -1,6 +1,3 @@
-//
-// Created by HighlySkilledCoder on 2026/1/24.
-//
 
 #include "generator.h"
 

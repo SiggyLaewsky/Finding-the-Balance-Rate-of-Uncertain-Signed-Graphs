@@ -1,6 +1,4 @@
-//
-// Created by HighlySkilledCoder on 2026/2/2.
-//
+
 
 #ifndef BR_USG_UTILS_H
 #define BR_USG_UTILS_H

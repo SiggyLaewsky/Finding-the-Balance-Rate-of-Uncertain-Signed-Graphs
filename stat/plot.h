@@ -1,6 +1,4 @@
-//
-// Created by HighlySkilledCoder on 2026/1/25.
-//
+
 
 #ifndef BR_USG_PLOT_H
 #define BR_USG_PLOT_H

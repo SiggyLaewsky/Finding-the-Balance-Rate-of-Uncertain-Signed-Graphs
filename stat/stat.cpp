@@ -1,6 +1,4 @@
-//
-// Created by HighlySkilledCoder on 2026/1/24.
-//
+
 
 #include <numeric>
 #include "stat.h"

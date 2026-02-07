@@ -11,11 +11,11 @@ matplotlib.rcParams.update({
     "font.family": "serif",
     "font.serif": ["Computer Modern Roman"],
     "mathtext.fontset": "cm",
-    "axes.labelsize": 12,
-    "font.size": 11,
-    "legend.fontsize": 10,
-    "xtick.labelsize": 10,
-    "ytick.labelsize": 10,
+    "axes.labelsize": 20,
+    "font.size": 20,
+    "legend.fontsize": 20,
+    "xtick.labelsize": 20,
+    "ytick.labelsize": 20,
     "lines.linewidth": 1.8,
     "lines.markersize": 4.5,
     "axes.grid": True,
@@ -34,6 +34,8 @@ ROW_COLORS = [
     "#744210",
 ]
 
+MARKERS = ['x', '^', 'v', 'D', 'o', 's', '*', 'h']
+
 def plot_rows(instance_name, data, p_mul, save_path=None, show=False, dpi=300):
     fig, ax = plt.subplots(figsize=(6.5, 4.0))
 
@@ -43,7 +45,7 @@ def plot_rows(instance_name, data, p_mul, save_path=None, show=False, dpi=300):
             x,
             row,
             lw=2.0,
-            marker="o",
+            marker=MARKERS[i % len(MARKERS)],
             color=ROW_COLORS[i % len(ROW_COLORS)],
         )
 
@@ -55,10 +57,15 @@ def plot_rows(instance_name, data, p_mul, save_path=None, show=False, dpi=300):
             rf"${v:.2f}$" for v in p_mul
         ])
 
-    ax.set_title(instance_name)
+
     ax.set_xlabel(r"Probability factor")
     ax.set_ylabel(r"$\hat{R}_{bal}$")
     ax.grid(True, alpha=0.3)
+
+    plt.rcParams["text.usetex"] = True
+    plt.rcParams["font.family"] = "sans-serif"
+    instance_name = instance_name[0].upper() + instance_name[1:]
+    ax.set_title(rf"$\textsf{{{instance_name}}}$")
 
     plt.tight_layout()
 

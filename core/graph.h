@@ -1,6 +1,4 @@
-//
-// Created by HighlySkilledCoder on 2026/1/23.
-//
+
 
 #ifndef BR_USG_GRAPH_H
 #define BR_USG_GRAPH_H
@@ -52,6 +50,11 @@ struct Graph{
     void return_edge(int i, int j);
     /// Save the graph to a file in the expected edge format.
     void save(const std::string& filename);
+    /**
+     * @brief Set means of edge distributions of a magnitude 1 / log |E|.
+     * @return Generated means
+     */
+    std::vector<double> set_p_logarithmic();
 
     int n_ = 0;  ///< Number of nodes.
     int m_ = 0;  ///< Number of active edges (prefix length of edge arrays).

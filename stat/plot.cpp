@@ -1,6 +1,4 @@
-//
-// Created by HighlySkilledCoder on 2026/1/25.
-//
+
 
 #include "plot.h"
 

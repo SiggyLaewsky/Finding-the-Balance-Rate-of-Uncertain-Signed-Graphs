@@ -1,6 +1,3 @@
-//
-// Created by HighlySkilledCoder on 2026/1/24.
-//
 
 #ifndef BR_USG_GENERATOR_H
 #define BR_USG_GENERATOR_H

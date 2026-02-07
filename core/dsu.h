@@ -1,6 +1,4 @@
-//
-// Created by HighlySkilledCoder on 2026/1/23.
-//
+
 
 #ifndef BR_USG_DSU_H
 #define BR_USG_DSU_H

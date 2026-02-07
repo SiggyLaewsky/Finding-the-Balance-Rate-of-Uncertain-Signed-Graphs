@@ -1,6 +1,3 @@
-//
-// Created by HighlySkilledCoder on 2026/1/30.
-//
 
 #ifndef BR_USG_EXPERIMENTS_H
 #define BR_USG_EXPERIMENTS_H

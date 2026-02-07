@@ -1,6 +1,4 @@
-//
-// Created by HighlySkilledCoder on 2026/1/23.
-//
+
 
 #include <fstream>
 #include "graph.h"
@@ -187,7 +185,7 @@ void Graph::remove_edge(int i, int j) {
     int id = -1;
     for (int eid = 0; eid < m_; ++eid){
         if ((i == head_[eid] && j == tail_[eid])
-            || (i == head_[eid] && j == tail_[eid])){
+            || (j == head_[eid] && i == tail_[eid])){
             id = eid;
             break;
         }
@@ -209,7 +207,7 @@ void Graph::return_edge(int i, int j) {
     int id = -1;
     for (int eid = m_; eid < (int) head_.size(); ++eid){
         if ((i == head_[eid] && j == tail_[eid])
-            || (i == head_[eid] && j == tail_[eid])){
+            || (j == head_[eid] && i == tail_[eid])){
             id = eid;
             break;
         }
@@ -233,4 +231,20 @@ void Graph::save(const std::string &filename) {
     for (int eid = 0; eid < m_; ++eid)
         f << head_[eid] << '\t' << tail_[eid] << '\t' << s_[eid] << '\t' << dist_[eid].p() << std::endl;
     f.close();
+}
+
+std::vector<double> Graph::set_p_logarithmic() {
+    std::random_device rd;
+    std::mt19937 gen(rd());
+
+    double density = ((double ) m_) / ((double) n_);
+    double rng = std::sqrt((double) m_) * std::sqrt(density);
+
+    std::vector<double> p_list(m_);
+    for (auto eid = 0; eid < m_; ++eid){
+        std::uniform_real_distribution pmean_dist(0.1 / rng, 20.0 / rng);
+        dist_[eid] = std::bernoulli_distribution(std::min(1.0, pmean_dist(gen)));
+        p_list[eid] = dist_[eid].p();
+    }
+    return p_list;
 }
