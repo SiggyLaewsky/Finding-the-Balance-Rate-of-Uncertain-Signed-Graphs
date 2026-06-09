@@ -4,7 +4,7 @@
 
 int main(int argc, char* argv[]){
 
-    std::string error_line = "\nArguments: \n-i\t\tExperiment ID (1, 2, 3).\n-d\t\tDirectory for saving results.\n"
+    std::string error_line = "\nArguments: \n-i\t\tExperiment ID (1, 2, 3, 4).\n-d\t\tDirectory for saving results.\n"
                              "-ns\t\tNumber of samples per evaluation of balance rate.\n-nt\t\tNumber of threads to use."
                              "\nNumber of samples is integer > 1. Number of threads is positive integer.";
 
@@ -41,7 +41,11 @@ int main(int argc, char* argv[]){
     }
     else if (experiment == 3){
         run_cross_edge_experiment(n_threads, n_samples);
-    } else{
+    }
+    else if (experiment == 4){
+        run_cross_edge_ebc_comparison_experiment(n_threads, n_samples);
+    }
+    else{
         throw std::runtime_error(error_line);
     }
 

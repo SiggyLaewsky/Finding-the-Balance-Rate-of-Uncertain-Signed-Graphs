@@ -2,8 +2,7 @@
 #ifndef BR_USG_EXPERIMENTS_H
 #define BR_USG_EXPERIMENTS_H
 
-#include "core/algo.h"
-#include "utils.h"
+#include <iostream>
 
 /**
  * @brief Compare naive Monte Carlo vs Rao-Blackwellized estimator efficiency.
@@ -22,10 +21,17 @@ void run_efficiency_experiment(const std::string& plot_dir, int num_threads, int
 void run_p_eta_experiment(const std::string& plot_dir, int num_threads, int n_samples = 1000);
 
 /**
- * @brief Inject a cross-edge into balanced instances and try to identify it.
+ * @brief Inject cross-edges into balanced instances and try to identify them.
  *
  * Uses instances in data/real_world_balanced and reports the best edge removal.
  */
 void run_cross_edge_experiment(int num_threads, int n_samples = 1000);
+
+/**
+ * @brief Inject cross-edges into balanced instances and try to identify them; comparison to EBC-based heuristic.
+ *
+ * Uses instances in data/real_world_balanced and reports the best edge removal.
+ */
+void run_cross_edge_ebc_comparison_experiment(int num_threads, int n_samples = 1000);
 
 #endif //BR_USG_EXPERIMENTS_H

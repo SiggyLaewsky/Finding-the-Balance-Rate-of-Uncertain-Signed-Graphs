@@ -45,7 +45,10 @@ def plot_comparison(mean1, lb1, ub1, mean2, lb2, ub2, delta, save_path, show, dp
 
     ax.set_xlabel(xlabel)
     ax.set_ylabel(ylabel)
-    ax.set_title(title)
+
+    instance_name = save_path.split("/")[-1].split(".")[0]
+    instance_name = instance_name[0].upper() + instance_name[1:].lower()
+    ax.set_title(instance_name)
 
     ax.yaxis.set_major_formatter(ticker.ScalarFormatter(useMathText=True))
 

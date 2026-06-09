@@ -1,6 +1,8 @@
 
-
-#include <iostream>
+#include "core/algo.h"
+#include "core/ebc.h"
+#include "core/inject.h"
+#include "utils.h"
 #include "stat/plot.h"
 #include "experiments.h"
 
@@ -35,7 +37,7 @@ void run_efficiency_experiment(const std::string& plot_dir, int num_threads, int
         if (!plot_dir.empty()) {
             auto ci_hf = get_hoeffding_CI(res_naive, delta);
             auto ci_rb = get_log_delta_CI(res_rb, delta);
-            plot_CI(ci_hf, ci_rb, plot_dir + instance_name + "_comparison.pdf");
+            plot_CI(ci_hf, ci_rb, plot_dir + instance_name + ".pdf");
         }
     };
 
@@ -131,6 +133,58 @@ void run_p_eta_experiment(const std::string& plot_dir, int num_threads, int n_sa
         plot_p_eta_legend(eta_list, plot_dir + "eta_legend.pdf");
 }
 
+// auxiliary function
+void run_br(Graph& gr, InjectedEdges& injectedEdges, int num_samples, int num_threads){
+    auto n_crit = injectedEdges.critical_.size();
+
+    std::unordered_set<long long> erased;
+    for (size_t iCrit = 0; iCrit < n_crit; ++iCrit) {
+        double max_rbal = -1.0;
+        long long code_argmax = -1;
+        for (auto edge_code : injectedEdges.edge2scan_) {
+            if (erased.count(edge_code)) continue;
+            int u_ed = static_cast<int>(edge_code >> 32);
+            int v_ed = static_cast<int>(edge_code & 0xFFFFFFFFLL);
+
+            gr.remove_edge(u_ed, v_ed);
+            auto r_bal = eval_rbal(gr, num_samples, num_threads);
+            if (r_bal > max_rbal) {
+                max_rbal = r_bal;
+                code_argmax = edge_code;
+            }
+
+            gr.return_edge(u_ed, v_ed);
+        }
+
+        if (code_argmax != -1) {
+            int u = static_cast<int>(code_argmax >> 32);
+            int v = static_cast<int>(code_argmax & 0xFFFFFFFFLL);
+
+            gr.remove_edge(u, v);
+            std::cout << "Erased: " << std::min(u, v) << "-" << std::max(u, v) << std::endl;
+            erased.insert(code_argmax);
+        }
+        else {
+            throw std::logic_error("Failed to iterate ove edge2scan");
+        }
+    }
+
+    DSU dsu(gr.n_);
+    bool unite = true;
+    for (auto eid = 0; eid < gr.m_; ++eid){
+        unite = dsu.unite(gr.head_[eid], gr.tail_[eid], gr.s_[eid]);
+        if (!unite) break;
+    }
+    std::cout << "Is result balanced: " << unite << std::endl;
+
+    std::size_t cnt = 0;
+    for (const auto& elem : injectedEdges.critical_) {
+        if (erased.count(elem.first)) ++cnt;
+    }
+
+    std::cout << "Found edges from picked critical: " << cnt << "/" << n_crit << std::endl;
+}
+
 
 void run_cross_edge_experiment(int num_threads, int n_samples){
     int num_edge2scan = 100;
@@ -138,122 +192,65 @@ void run_cross_edge_experiment(int num_threads, int n_samples){
     auto real_dir = std::string(DATA_DIR) + "real_world_balanced/";
     auto real_instances = get_dir_files(real_dir);
 
-    auto run_instance = [&](const std::string& filepath){
+    auto run_instance = [&](const std::string& filepath) {
         Graph gr(filepath);
         std::cout << "|V| = " << gr.n_ << "\t|E| = " << gr.m_ << std::endl;
-        std::random_device rd;
-        std::mt19937 gen(rd());
-        std::uniform_real_distribution p_dist(0.5, 1.0);
-        std::uniform_int_distribution v_dist(0, gr.n_ - 1);
-
-        DSU dsu(gr.n_);
-        std::unordered_set<long long> used;
-        auto encode = [](int u, int v) {
-            if (u > v) std::swap(u, v);
-            return (long long)u << 32 | v;
-        };
-
-        for (auto eid = 0; eid < gr.m_; ++eid){
-            used.insert(encode(gr.head_[eid], gr.tail_[eid]));
-            auto unite = dsu.unite(gr.head_[eid], gr.tail_[eid], gr.s_[eid]);
-            if (!unite) throw std::runtime_error("Instance " + filepath + " is not balanced");
-            gr.dist_[eid] = std::bernoulli_distribution(p_dist(gen));
-        }
-
-        // pick critical edges
-        std::unordered_set<long long> critical;
-        for (int iCrit = 0; iCrit < n_critical; ++iCrit) {
-            int u = -1, v = -1;
-            int cnt = 0;
-            bool sgn;
-            while (cnt++ < 1e4) {
-                while (u == v || used.find(encode(u, v)) != used.end()) {
-                    u = v_dist(gen);
-                    v = v_dist(gen);
-                }
-                auto p1 = dsu.find(u), p2 = dsu.find(v);
-                if (p1.second != p2.second) continue;
-                sgn = (p1.first ^ p2.first);
-                break;
-            }
-            if (cnt >= 999) throw std::runtime_error("Instance " + filepath + ": failed to find a cross-edge");
-
-            gr.m_++;
-            std::cout << "Injected: " << std::min(u, v) << "-" << std::max(u, v) << std::endl;
-            critical.insert(encode(u, v));
-            used.insert(encode(u, v));
-            gr.head_.push_back(u);
-            gr.tail_.push_back(v);
-            gr.dist_.emplace_back(p_dist(gen));
-            gr.s_.push_back(sgn);
-            auto unite = dsu.unite(u, v, sgn);
-            if (unite) throw std::runtime_error("Unknown error");
-        }
-
-        std::unordered_map<long long, int> edge2scan;
-        if (gr.m_ <= num_edge2scan) {
-            for (auto eid = 0; eid < gr.m_; ++eid) edge2scan[encode(gr.head_[eid], gr.tail_[eid])] = -1;
-        } else{
-            std::vector<int> pool(gr.n_);
-            std::iota(pool.begin(), pool.end(), 0);
-
-            std::mt19937 rng(std::random_device{}());
-            std::vector<int> idx;
-            std::sample(pool.begin(), pool.end(), std::back_inserter(idx), num_edge2scan, rng);
-            for (auto eid: idx) edge2scan[encode(gr.head_[eid], gr.tail_[eid])] = -1;
-        }
-
-        for (int iCrit = 0; iCrit < n_critical; ++iCrit)
-            edge2scan[encode(gr.head_[gr.m_ - iCrit - 1], gr.tail_[gr.m_ - iCrit - 1])] = -1;
-
-        std::unordered_set<long long> erased;
-        for (int iCrit = 0; iCrit < n_critical; ++iCrit) {
-            // find current indices
-            for (auto eid = 0; eid < gr.m_; ++eid) {
-                auto code = encode(gr.head_[eid], gr.tail_[eid]);
-                if (edge2scan.find(code) != edge2scan.end())
-                    edge2scan[code] = eid;
-            }
-
-            double max_rbal = 0.0;
-            long long eid_argmax = -1;
-            auto m_orig = gr.m_;
-            for (auto &code: edge2scan) {
-                int u_ed = static_cast<int>(code.first >> 32), v_ed = static_cast<int>(code.first & 0xFFFFFFFFLL);
-                gr.remove_edge(u_ed, v_ed);
-                auto r_bal = eval_rbal(gr, n_samples, num_threads);
-                if (r_bal > max_rbal) {
-                    max_rbal = r_bal;
-                    eid_argmax = code.second;
-                }
-                gr.m_++;
-                std::swap(gr.head_[code.second], gr.head_[m_orig - 1]);
-                std::swap(gr.tail_[code.second], gr.tail_[m_orig - 1]);
-                std::swap(gr.s_[code.second], gr.s_[m_orig - 1]);
-                std::swap(gr.dist_[code.second], gr.dist_[m_orig - 1]);
-            }
-
-            int u = gr.head_[eid_argmax], v = gr.tail_[eid_argmax];
-            gr.remove_edge(u, v);
-            edge2scan.erase(encode(u, v));
-            std::cout << "Erased: " << std::min(u, v) << "-" << std::max(u, v) << std::endl;
-            erased.insert(encode(u, v));
-        }
-        dsu.reset();
-
-        bool unite = true;
-        for (auto eid = 0; eid < gr.m_; ++eid){
-            unite = dsu.unite(gr.head_[eid], gr.tail_[eid], gr.s_[eid]);
-            if (!unite) break;
-        }
-        std::cout << "Is result balanced: " << unite << std::endl;
-
-        std::size_t cnt = 0;
-        for (auto x : critical) cnt += erased.count(x);
-        std::cout << "Found edges from picked critical: " << cnt << "/" << n_critical << std::endl;
+        auto injectedEdges = inject(gr, n_critical, num_edge2scan);
+        run_br(gr, injectedEdges, n_samples, num_threads);
     };
 
     for (auto& instance: real_instances){
+        if (instance.substr(instance.size() - 4) != ".txt") continue;
+        auto instance_name = instance.substr(0, instance.size() - 4);
+        std::cout << "Instance " << instance_name << ":\n";
+        run_instance(real_dir + instance);
+        std::cout << std::endl;
+    }
+}
+
+
+void run_br_vs_ebc(const std::string& filepath, int num_samples, int num_threads, int n_crit, int num_edge2scan){
+    Graph gr(filepath);
+    std::cout << "|V| = " << gr.n_ << "\t|E| = " << gr.m_ << std::endl;
+    auto injected = inject(gr, n_crit, num_edge2scan);
+    std::cout << "Running balance-rate-based heuristic: " << std::endl;
+    run_br(gr, injected, num_samples, num_threads);
+    std::cout << "Running EBC-based heuristic: " << std::endl;
+    EBC ebc(filepath);
+    inject(ebc, injected);
+
+    auto ebc_res = ebc.rank_subset(injected.edge2scan_, n_crit);
+
+    std::unordered_set<long long> critical;
+    for (auto& el: injected.critical_) critical.insert(el.first);
+
+    auto encode = [](int u, int v) {
+        if (u > v) std::swap(u, v);
+        return (long long) u << 32 | v;
+    };
+
+    int cnt = 0;
+    for (auto eid: ebc_res){
+        int u = ebc.head_[eid], v = ebc.tail_[eid];
+        if (critical.count(encode(u, v))) ++cnt;
+        std::cout << "Erased: " << std::min(u, v) << "-" << std::max(u, v) << std::endl;
+    }
+
+    std::cout << "Found edges from picked critical: " << cnt << "/" << n_crit << std::endl;
+}
+
+void run_cross_edge_ebc_comparison_experiment(int num_threads, int n_samples) {
+    int num_edge2scan = 100;
+    int n_critical = 5;
+    auto real_dir = std::string(DATA_DIR) + "real_world_balanced/";
+    auto real_instances = get_dir_files(real_dir);
+
+    auto run_instance = [&](const std::string &filepath) {
+        run_br_vs_ebc(filepath, n_samples, num_threads, n_critical, num_edge2scan);
+    };
+
+
+    for (auto &instance: real_instances) {
         if (instance.substr(instance.size() - 4) != ".txt") continue;
         auto instance_name = instance.substr(0, instance.size() - 4);
         std::cout << "Instance " << instance_name << ":\n";

@@ -29,6 +29,10 @@ add_executable(BR_USG
         experiments.h
         utils.cpp
         utils.h
+        core/ebc.cpp
+        core/ebc.h
+        core/inject.cpp
+        core/inject.h
 )
 
 target_compile_definitions(BR_USG PRIVATE DATA_DIR="${DATA_DIR}/")

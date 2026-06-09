@@ -35,7 +35,7 @@ Finding-the-Balance-Rate-of-Uncertain-Signed-Graphs/
 Main binary (`BR_USG`):
 
 ```
--i  <1|2|3>     Experiment id (efficiency, p/eta sweep, cross-edge)
+-i  <1|2|3|4>   Experiment id (efficiency, p/eta sweep, cross-edge, br vs ebc)
 -ns <int>       Number of samples per balance-rate evaluation
 -nt <int>       Number of OpenMP threads
 -d  <path>      Output directory for plots (optional)
